@@ -60,19 +60,7 @@
 //8xy0 - LD Vx, Vy
 //Set Vx = Vy.
 //Stores the value of register Vy in register Vx.
-use chip8::Chip8;
-use chip8::Screen;
 
 fn main() {
-    let mut chippy = Chip8::new();
-    
-    chippy.draw(1, 2, 5);
 
-    let mut screen = Screen::new();
-
-    for i in 0..64 {
-        screen.toggle_pixel(i,i);
-    }
-
-    screen.print_display();
 }

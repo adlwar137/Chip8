@@ -168,7 +168,7 @@ impl Cpu {
     fn shift_right(&mut self, register: usize) {
         const LEAST_SIGNIFICANT_BIT_MASK: u8 = 0b00000001;
         self.flag_register = (self.registers[register] & LEAST_SIGNIFICANT_BIT_MASK) == LEAST_SIGNIFICANT_BIT_MASK;
-        self.registers[register] >> 1;
+        self.registers[register] = self.registers[register] >> 1;
     }
 
     fn subtract_second(&mut self, first_register: usize, second_register: usize) {
@@ -177,8 +177,8 @@ impl Cpu {
     }
 
     fn shift_left(&mut self, register: usize) {
-        const most_significant_bit_mask: u8 = 0b10000000;
-        self.flag_register = (self.registers[register] & most_significant_bit_mask) == most_significant_bit_mask;
+        const MOST_SIGNIFICANT_BIT_MASK: u8 = 0b10000000;
+        self.flag_register = (self.registers[register] & MOST_SIGNIFICANT_BIT_MASK) == MOST_SIGNIFICANT_BIT_MASK;
         self.registers[register] = self.registers[register] << 1;
     }
 

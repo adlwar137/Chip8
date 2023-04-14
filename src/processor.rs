@@ -1,5 +1,5 @@
-use crate::display::Screen;
 use rand::Rng;
+use crate::Screen;
 
 pub struct Cpu {
     screen: Screen,
@@ -14,33 +14,12 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn new() -> Cpu {
-        let mut reserved_memory: [u8; 4096] = [0; 4096];
-
-        //zero
-        reserved_memory[0] = 0b11110000; // ****
-        reserved_memory[1] = 0b10010000; // *  *
-        reserved_memory[2] = 0b10010000; // *  *
-        reserved_memory[3] = 0b10010000; // *  *
-        reserved_memory[4] = 0b11110000; // ****
-        //one
-        reserved_memory[5] = 0b00100000; //   *
-        reserved_memory[6] = 0b01100000; //  **
-        reserved_memory[7] = 0b00100000; //   *
-        reserved_memory[8] = 0b00100000; //   *
-        reserved_memory[9] = 0b01110000; //  ***
-        //two
-        reserved_memory[10] = 0b11110000; // ****
-        reserved_memory[11] = 0b00010000; //    *
-        reserved_memory[12] = 0b11110000; // ****
-        reserved_memory[13] = 0b10000000; // *
-        reserved_memory[14] = 0b11110000; // ****
-
         let screen = Screen::new();
 
         Cpu {
-            memory: reserved_memory,
+            memory: [0; 4096],
             screen: Screen::new(),
-            program_counter: 0,
+            program_counter: 0x200,
             stack: [0; 16],
             stack_pointer: 0,
             registers: [0; 16],
@@ -51,6 +30,68 @@ impl Cpu {
 
     pub fn edit_memory(&mut self, address: usize, data: u8) {
         self.memory[address] = data;
+    }
+
+    pub fn process_instruction(&mut self) {
+
+        let first_byte: u8 = self.memory[(self.program_counter) as usize];
+        let second_byte: u8 = self.memory[(self.program_counter + 1) as usize];
+
+        let instruction: u16 = ((first_byte as u16) << 8) | second_byte as u16;
+        
+        let address: u16 = instruction & 0x0FFF;
+        let nibble: u8 = (instruction & 0x000F) as u8;
+        let x: usize = ((instruction & 0x0F00) >> 8) as usize;
+        let y: usize = ((instruction & 0x00F0) >> 4) as usize;
+        let byte: u8 = (instruction & 0x00FF) as u8;
+        let opcode: u8 = ((instruction & 0xF000) >> 12) as u8; 
+
+        match opcode {
+            0x0 => {
+                match (instruction & 0x00FF) as u8 {
+                    0xE0 => self.clear_screen(),
+                    0xEE => self.return_from_subroutine(),
+                    0x00 => (), //Do nothing
+                    _ => panic!("oopsy woopsy"),
+                }
+            }
+            0x1 => self.jump(address),
+            0x2 => self.call_subroutine(address),
+            0x3 => self.skip_equal(x, byte),
+            0x4 => self.skip_not_equal(x, byte),
+            0x5 => self.skip_equal_register(x, y as usize),
+            0x6 => self.load(x, byte),
+            0x7 => self.add(x, byte),
+            0x8 => {
+                //arithmetic operations
+                match nibble {
+                    0x0 => self.load_register(x, y),
+                    0x1 => self.or(x, y),
+                    0x2 => self.and(x, y),
+                    0x3 => self.xor(x, y),
+                    0x4 => self.add_register(x, y),
+                    0x5 => self.subtract_first(x, y),
+                    0x6 => self.shift_right(x),
+                    0x7 => self.subtract_second(x, y),
+                    0xE => self.shift_left(x),
+                    _ => panic!("oopsy woopsy"),
+                }
+            }
+            0x9 => self.skip_not_equal_register(x, y),
+            0xA => self.load_i(address),
+            0xB => self.jump_offset(address),
+            0xC => self.random(x, byte),
+            0xD => self.draw(x, y, nibble),
+            //more to come
+            0xF => {
+                match byte {
+                    0x1E => self.add_i(x),
+                    _ => panic!("oopsy woopsy"),
+                }
+            }
+            _ => panic!("oopsy woopsy"),
+        }
+        self.program_counter += 2;
     }
 
     fn clear_screen(&mut self) {
@@ -125,8 +166,8 @@ impl Cpu {
     }
     
     fn shift_right(&mut self, register: usize) {
-        const least_significant_bit_mask: u8 = 0b00000001;
-        self.flag_register = (self.registers[register] & least_significant_bit_mask) == least_significant_bit_mask;
+        const LEAST_SIGNIFICANT_BIT_MASK: u8 = 0b00000001;
+        self.flag_register = (self.registers[register] & LEAST_SIGNIFICANT_BIT_MASK) == LEAST_SIGNIFICANT_BIT_MASK;
         self.registers[register] >> 1;
     }
 
@@ -192,5 +233,9 @@ impl Cpu {
 
     fn skip_not_pressed(&mut self, register: usize) {
         todo!("write keyboard implementation");
+    }
+
+    fn add_i(&mut self, register: usize) {
+        self.i_register = self.i_register + (self.registers[register] as u16);
     }
 }

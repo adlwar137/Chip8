@@ -14,8 +14,6 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn new() -> Cpu {
-        let screen = Screen::new();
-
         Cpu {
             memory: [0; 4096],
             screen: Screen::new(),
